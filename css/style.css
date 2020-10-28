@@ -24,6 +24,11 @@ body { padding-top: 60px; }
     text-align: center;
 }
 
+#center {
+  width: 50%;
+  margin: 0 auto;
+}
+
 .artikelLink:hover, .artikelLink:visited, .artikelLink:link, .artikelLink:active {
     text-decoration: none;
     display: block;
