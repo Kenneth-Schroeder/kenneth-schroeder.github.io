@@ -25,17 +25,15 @@ body { padding-top: 60px; }
 }
 
 
-#innerCenter {  
-  border: 1px solid black;
-}
 
 #outerCenter {
-  border: 1px solid red;
-  width:100%
-  display: flex;
-  justify-content: center;
+  width: 100%;
+  text-align: center;
 }
 
+#innerCenter {
+  display: inline-block;
+}
 
 
 .artikelLink:hover, .artikelLink:visited, .artikelLink:link, .artikelLink:active {
