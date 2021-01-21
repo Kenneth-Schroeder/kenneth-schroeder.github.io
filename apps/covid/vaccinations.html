@@ -2,8 +2,8 @@
 <meta charset="utf-8">
 
 <head>
+    <title>Vaccinations GER</title>
     <style>
-
         text {
             font-family: 'Yanone Kaffeesatz', sans-serif;
         }
@@ -24,7 +24,6 @@
             stroke: black;
             opacity: 0.1;
         }
-
     </style>
 </head>
 
@@ -66,6 +65,10 @@
     function make_y_gridlines() {
         return d3.axisLeft(y)
         //.ticks(10)
+    }
+
+    function numberWithCommas(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     d3.csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/vaccinations.csv").then(function(csv_data) {
@@ -115,6 +118,7 @@
         var color = [d3.schemeSet3[6], d3.schemeSet3[4]]
         var group = svg.selectAll("g.layer")
             .data(d3.stack().keys(category_keys)(data), d => d.date); // this is where the magic happens
+        console.log(group)
 
         group.exit().remove()
 
@@ -128,12 +132,13 @@
         bars.exit().remove();
 
         bars.enter().append("rect")
-            .attr("width", x.bandwidth())
             .merge(bars)
             .attr("x", d => x(d.data.date) +2 )
             .attr("y", d => y(d[1]))
             .attr("height", d => y(d[0]) - y(d[1]))
-            .attr("width", x.bandwidth()-2);
+            .attr("width", x.bandwidth()-2)
+            .append("title")
+            .text(d => numberWithCommas(d[1]-d[0]));
 
         svg.append("text").attr("class","label")
             .text("Daily Number of Covid-19 Vaccinations in Germany") // based on provided data
