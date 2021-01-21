@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d21fdb03-b56d-476b-86fd-4cf95c2f9db1" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/apps/covid/covid_vaccinations_germany.html" beforeDir="false" afterPath="$PROJECT_DIR$/apps/covid/covid_vaccinations_germany.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,7 +34,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1610637802899</updated>
-      <workItem from="1610637804362" duration="946000" />
+      <workItem from="1610637804362" duration="1681000" />
     </task>
     <servers />
   </component>
