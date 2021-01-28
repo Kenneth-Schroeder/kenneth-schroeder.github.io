@@ -93,7 +93,7 @@
         });
 
         x.domain(data.map(function(d) { return d.date; }));
-        y.domain([0, d3.max(data.map(d => d.day_total))]).nice();
+        y.domain([0, d3.max(data.map(d => d.day_total))*1.02 ]).nice();
 
         svg.append("g")
             .attr("class", "x axis")
