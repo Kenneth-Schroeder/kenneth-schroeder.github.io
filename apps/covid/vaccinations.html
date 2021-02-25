@@ -95,10 +95,12 @@
         x.domain(data.map(function(d) { return d.date; }));
         y.domain([0, d3.max(data.map(d => d.day_total))*1.02 ]).nice();
 
+        //xAxis = xAxis.ticks(x.domain.length/2);
+
         svg.append("g")
             .attr("class", "x axis")
             .attr("transform", "translate(0," + height + ")")
-            .call(xAxis)
+            .call(xAxis.tickValues(x.domain().filter(function(d,i){ return !((i-1)%7)})))
             .selectAll("text")
                 .style("text-anchor", "end")
                 .attr("dx", "-.2em")
