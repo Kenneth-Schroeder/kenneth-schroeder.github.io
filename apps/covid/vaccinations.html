@@ -24,6 +24,12 @@
             stroke: black;
             opacity: 0.1;
         }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: auto;
+            position: relative;
+        }
     </style>
 </head>
 
@@ -46,7 +52,10 @@
     var y = d3.scaleLinear()
         .range([height, 0])
 
-    var svg = d3.select("body").append("svg")
+    let barChartDiv = d3.select("body").append("div")
+    let treemapDiv = d3.select("body").append("div")
+
+    var svg = barChartDiv.append("svg")
         .attr("width", '100%')//width + margin.left + margin.right)
         .attr("height", '100%') //height + margin.top + margin.bottom)
         .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
@@ -179,8 +188,91 @@
                     .attr("font-size", "60px")
                     .attr("alignment-baseline", "middle")
                     .text(d + " (" + progress[progress.length-1-i] + "%)");
-            });
+        });
+    });
 
+
+    height = 3300
+
+    var treemapSVG = treemapDiv.append("svg")
+        .attr("width", '100%')//width + margin.left + margin.right)
+        .attr("height", '100%') //height + margin.top + margin.bottom)
+        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+        .append("g")
+
+
+    d3.csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/vaccinations.csv").then(function(csv_data) {
+        const color = d3.scaleOrdinal().range(d3.schemeDark2);
+        const format = d3.format(",d");
+
+        csv_data = csv_data.filter(d => d.date == "2021-03-01" && Number(d.total_vaccinations) > 100000 && d.location != "World" && d.location != "European Union")
+
+        var sizeSum = 0
+        var children = []
+        csv_data.forEach(function(d) {
+            let child = {
+                name: d.location,
+                size: Number(d.total_vaccinations)
+            }
+            children.push(child);
+            sizeSum += Number(d.total_vaccinations);
+        })
+
+        let hierarchyData = {
+            name: "Vaccinations",
+            children: children,
+            size: 0
+        }
+
+        const treemap = d3.treemap().size([width, height])
+            //.children(function(d) { return d.kids})
+            .tile(d3.treemapSquarify) // treemapBinary, treemapDice, treemapSlice, treemapSliceDice, treemapSquarify
+            .padding(3)
+            .round(true)
+
+        const root = d3.hierarchy(hierarchyData, (d) => d.children)
+            .eachBefore(function(d) { d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name; })
+            .sum((d) => d.size);
+
+        treemap(root);
+
+        var cell = treemapSVG.selectAll("g")
+            .data(root.leaves())
+            .enter().append("g")
+            .attr("transform", function(d) { return "translate(" + (d.x0 + margin.left) + "," + (d.y0  + margin.top) + ")"; });
+
+        cell.append("rect")
+            .attr("id", function(d) { return d.data.id; })
+            .attr("width", function(d) { return d.x1 - d.x0; })
+            .attr("height", function(d) { return d.y1 - d.y0; })
+            .attr("fill", function(d) { return d.data.name == "Germany" ? d3.interpolateMagma(0.25) : d3.interpolateMagma(0.15) });
+
+        cell.append("clipPath")
+            .attr("id", function(d) { return "clip-" + d.data.id; })
+            .append("use")
+            .attr("xlink:href", function(d) { return "#" + d.data.id; });
+
+        cell.append("text")
+            .attr("clip-path", function(d) { return "url(#clip-" + d.data.id + ")"; })
+            .selectAll("tspan")
+            .data(function(d) { return d.data.name.split(/(?=[A-Z][^A-Z])/g); })
+            .enter().append("tspan")
+            .attr("x", 10)
+            .attr("y", function(d, i) { return 10 + i * 40; })
+            .text(function(d) { return d; })
+            .attr("alignment-baseline", "hanging")
+            .attr("font-size", "40px")
+            .style('fill', 'white');
+
+        cell.append("title")
+            .text(function(d) { return d.data.id + "\n" + format(d.value); });
+
+        treemapSVG.append("text").attr("class","label")
+            .text("Total Number of Covid-19 Vaccinations Worldwide") // based on provided data
+            .attr("transform", `translate(${[width/2 + margin.left, margin.top -50]})`)
+            .attr("font-size", "80px")
+            .attr("text-anchor", "middle")
+            .attr("alignment-baseline", "ideographic");
     });
 
 </script>
