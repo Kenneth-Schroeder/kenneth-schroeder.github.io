@@ -41,11 +41,17 @@
 
 <script src="https://d3js.org/d3.v5.min.js"></script>
 
+<form>
+    <label><input type="radio" name="mode" value="total" checked> Total</label>
+    <label><input type="radio" name="mode" value="relative"> Relative</label>
+</form>
+
 <script>
 
-    var margin = {top: 200, right: 100, bottom: 150, left: 200},
+    var margin = {top: 200, right: 100, bottom: 150, left: 300},
         width = 3840 - margin.left - margin.right,
-        height = 2160 - margin.top - margin.bottom;
+        barChartHeight = 2160 - margin.top - margin.bottom,
+        treemapHeight = 3000 - margin.top - margin.bottom;
 
     // Parse the date / time
     const dateParser = d3.timeParse("%Y-%m-%d")
@@ -54,15 +60,15 @@
         .range([0, width]);
 
     var y = d3.scaleLinear()
-        .range([height, 0])
+        .range([barChartHeight, 0])
 
-    let barChartDiv = d3.select("body").append("div")
     let treemapDiv = d3.select("body").append("div")
+    let barChartDiv = d3.select("body").append("div")
 
-    var svg = barChartDiv.append("svg")
+    var svgBarChart = barChartDiv.append("svg")
         .attr("width", '100%')//width + margin.left + margin.right)
         .attr("height", '100%') //height + margin.top + margin.bottom)
-        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+        .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${barChartHeight + margin.top + margin.bottom}`)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -87,111 +93,6 @@
     }
 
     d3.csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/vaccinations.csv").then(function(csv_data) {
-        var windowFirst = []
-        windowFirst.push(0);
-        windowFirst.push(0);
-        var windowFull = []
-        windowFull.push(0);
-        windowFull.push(0);
-        var data = []
-
-        ger_data = csv_data.filter(d => d.location == "Germany")
-
-        ger_data.forEach(function(d) {
-            windowFirst.shift();
-            windowFirst.push(d.people_vaccinated);
-            windowFull.shift();
-            windowFull.push(d.people_fully_vaccinated);
-            let first = windowFirst[1] - windowFirst[0]
-            let fully = windowFull[1] - windowFull[0]
-            data.push({"date": dateParser(d.date), "first": first, "fully": fully, "day_total": first + fully });
-        });
-
-        x.domain(data.map(function(d) { return d.date; }));
-        y.domain([0, d3.max(data.map(d => d.day_total))*1.02 ]).nice();
-
-        svg.append("g")
-            .attr("class", "grid")
-            .call(make_y_gridlines()
-                .tickSize(-width)
-                .tickFormat("")
-            );
-
-        var category_keys = ["fully", "first"]
-        var category_names = ["second vaccination received", "first vaccination received"]
-        var progress = [d3.max(ger_data.map(d => d.people_fully_vaccinated_per_hundred)), d3.max(ger_data.map(d => d.people_vaccinated_per_hundred))]
-        var color = [d3.interpolateMagma(0.60), d3.interpolateMagma(0.85)]//[d3.schemeSet3[6], d3.schemeSet3[4]]
-        var group = svg.selectAll("g.layer")
-            .data(d3.stack().keys(category_keys)(data), d => d.date); // this is where the magic happens
-
-        group.exit().remove()
-
-        group.enter().append("g")
-            .classed("layer", true)
-            .attr("fill", (d,i) => color[i]);
-
-        var bars = svg.selectAll("g.layer").selectAll("rect")
-            .data(d => d, e => e.data.date);
-
-        bars.exit().remove();
-
-        bars.enter().append("rect")
-            .merge(bars)
-            .attr("x", d => x(d.data.date) +3 )
-            .attr("y", d => y(d[1]))
-            .attr("height", d => y(d[0]) - y(d[1]))
-            .attr("width", x.bandwidth()-6)
-            .append("title")
-            .text(d => numberWithCommas(d[1]-d[0]));
-
-        svg.append("text").attr("class","label")
-            .text("Daily Number of Covid-19 Vaccinations in Germany") // based on provided data
-            .attr("transform", `translate(${[width/2, -50]})`)
-            .attr("font-size", "80px")
-            .attr("text-anchor", "middle")
-            .attr("alignment-baseline", "ideographic");
-
-        svg.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis.tickValues(x.domain().filter(function(d,i){ return !((i-1)%7)})))
-            .selectAll("text")
-            .style("text-anchor", "end")
-            .attr("dx", "-.2em")
-            .attr("dy", ".6em")
-            .attr("transform", "rotate(-50)");
-
-        svg.append("g")
-            .attr("class", "y axis")
-            .attr("transform", "translate(" + 0 + ", " + 0 + ")")
-            .call(yAxis)
-            .selectAll("text")
-            .attr("transform", "translate(" + -10 + ", " + 0 + ")")
-
-        var legendItemHeight = 70, legendItemSpacing = 10, legendItemWidth = 100;
-        const legend = svg
-            .append("g").attr("class", "legend")
-            .attr("transform", `translate(${[25, 20]})`);
-
-        legend.selectAll("g.item")
-            .data(category_names.reverse())
-            .join("g").attr("class", "item")
-            .each(function(d, i) {
-                d3.select(this)
-                    .append("rect")
-                    .attr("y", i * (legendItemHeight + legendItemSpacing))
-                    .attr("height", legendItemHeight)
-                    .attr("width", legendItemWidth)
-                    .style("fill", color[category_names.length-1-i]);
-
-                d3.select(this)
-                    .append("text")
-                    .attr("y", i * (legendItemHeight + legendItemSpacing) + legendItemHeight/2)
-                    .attr("x", legendItemWidth + 20)
-                    .attr("font-size", "60px")
-                    .attr("alignment-baseline", "middle")
-                    .text(d + " (" + progress[progress.length-1-i] + "%)");
-        });
 
 
 
@@ -200,14 +101,23 @@
 
 
 
-
-        height = 3300
+        var selectedCountry = "Vaccinations.Germany";
+        var selectedCountryName = "Germany";
 
         var treemapSVG = treemapDiv.append("svg")
             .attr("width", '100%')//width + margin.left + margin.right)
             .attr("height", '100%') //height + margin.top + margin.bottom)
-            .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+            .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${treemapHeight + margin.top + margin.bottom}`)
             .append("g")
+
+        function highlight(data){
+            selectedCountry = data.id;
+            selectedCountryName = data.name;
+            treemapSVG
+                .selectAll("rect")
+                .attr("fill", function(d) { return d.data.id == selectedCountry ? d3.interpolateMagma(0.25) : d3.interpolateMagma(0.15); });
+            drawBarChart(selectedCountryName, csv_data);
+        }
 
         const format = d3.format(",d");
         const twoDaysAgo = d3.timeDay.offset(new Date(), -2)
@@ -216,24 +126,24 @@
 
         global_data = csv_data.filter(d => d.date == dateString && Number(d.total_vaccinations) > 100000 && Number(d.total_vaccinations_per_hundred) > 1 && d.location != "World" && d.location != "European Union")
 
-        var sizeSum = 0
-        var children = []
+        var countries = []
         global_data.forEach(function(d) {
             let child = {
                 name: d.location,
-                size: Number(d.total_vaccinations)
+                total: Number(d.total_vaccinations),
+                relative: Number(d.total_vaccinations_per_hundred)
             }
-            children.push(child);
-            sizeSum += Number(d.total_vaccinations);
+            countries.push(child);
         })
 
         var hierarchyData = {
             name: "Vaccinations",
-            children: children,
-            size: 0
+            children: countries,
+            total: 0,
+            relative: 0
         }
 
-        const treemap = d3.treemap().size([width, height])
+        const treemap = d3.treemap().size([width, treemapHeight])
             //.children(function(d) { return d.kids})
             .tile(d3.treemapSquarify) // treemapBinary, treemapDice, treemapSlice, treemapSliceDice, treemapSquarify
             .padding(3)
@@ -241,7 +151,7 @@
 
         const root = d3.hierarchy(hierarchyData, (d) => d.children)
             .eachBefore(function(d) { d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name; })
-            .sum((d) => d.size);
+            .sum((d) => d.total); // adjust here which value to use
 
         treemap(root);
 
@@ -251,6 +161,7 @@
             .attr("transform", function(d) { return "translate(" + (d.x0 + margin.left) + "," + (d.y0  + margin.top) + ")"; });
 
         cell.append("rect")
+            .on("click", (d) => highlight(d.data))
             .attr("id", function(d) { return d.data.id; })
             .attr("width", function(d) { return d.x1 - d.x0; })
             .attr("height", function(d) { return d.y1 - d.y0; })
@@ -283,87 +194,159 @@
             .attr("text-anchor", "middle")
             .attr("alignment-baseline", "ideographic");
 
+        d3.selectAll("input").on("change", function change() {
+            const valString = this.value
+            const value = this.value === "total" ? (d) => d.total : (d) => d.relative;
 
+            const newRoot = d3.hierarchy(hierarchyData, (d) => d.children)
+                .sum(value);
 
-
-
-
-
-
-        var treemap_relative_SVG = treemapDiv.append("svg")
-            .attr("width", '100%')//width + margin.left + margin.right)
-            .attr("height", '100%') //height + margin.top + margin.bottom)
-            .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
-            .append("g")
-
-        global_data = csv_data.filter(d => d.date == dateString && Number(d.total_vaccinations) > 100000 && Number(d.total_vaccinations_per_hundred) > 1 && d.location != "World" && d.location != "European Union")
-
-        children = []
-        global_data.forEach(function(d) {
-            let child = {
-                name: d.location,
-                size: Number(d.total_vaccinations_per_hundred)
+            function getText(d, input) {
+                return input === "total" ? (d.data.name+" "+format(d.data.total)).split(" ") : (d.data.name+" "+format(d.data.relative) + "%").split(" ");
             }
-            children.push(child);
-        })
 
-        hierarchyData = {
-            name: "VaccinationsRelative",
-            children: children,
-            size: 0
-        }
+            treemapSVG
+                .selectAll("g")
+                .data(treemap(newRoot).leaves())
+                .transition()
+                .duration(1500)
+                .attr("transform", function(d) { return "translate(" + (d.x0 + margin.left) + "," + (d.y0  + margin.top) + ")"; });
 
-        const treemap_relative = d3.treemap().size([width, height])
-            //.children(function(d) { return d.kids})
-            .tile(d3.treemapSquarify) // treemapBinary, treemapDice, treemapSlice, treemapSliceDice, treemapSquarify
-            .padding(3)
-            //.round(true)
+            cell
+                .selectAll("text")
+                .attr("clip-path", function(d) { return "url(#clip-" + d.data.id + ")"; })
+                .selectAll("tspan")
+                .data(function(d) { return getText(d, valString); }) // d.data.name.split(/(?=[A-Z][^A-Z])/g); })
+                .attr("x", 10)
+                .attr("y", function(d, i) { return 10 + i * 42; })
+                .text(function(d) { return d; })
+                .attr("alignment-baseline", "hanging")
+                .attr("font-size", "40px")
+                .style('fill', 'white');
 
-        const root_relative = d3.hierarchy(hierarchyData, (d) => d.children)
-            .eachBefore(function(d) { d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name; })
-            .sum((d) => d.size);
+            treemapSVG
+                .selectAll("rect")
+                .data(treemap(newRoot).leaves())
+                .transition()
+                .duration(1500)
+                .attr("width", function(d) { return d.x1 - d.x0; })
+                .attr("height", function(d) { return d.y1 - d.y0; })
+        });
 
-        treemap_relative(root_relative);
+        drawBarChart(selectedCountryName, csv_data);
 
-        var cell_rel = treemap_relative_SVG.selectAll("g")
-            .data(root_relative.leaves())
-            .enter().append("g")
-            .attr("transform", function(d) { return "translate(" + (d.x0 + margin.left) + "," + (d.y0  + margin.top) + ")"; });
+    });
 
-        cell_rel.append("rect")
-            .attr("id", function(d) { return d.data.id; })
-            .attr("width", function(d) { return d.x1 - d.x0; })
-            .attr("height", function(d) { return d.y1 - d.y0; })
-            .attr("fill", function(d) { return d.data.name == "Germany" ? d3.interpolateMagma(0.20) : d3.interpolateMagma(0.10) });
+    function drawBarChart(country, csv_data){
+        svgBarChart.selectAll("g > *").remove()
 
-        cell_rel.append("clipPath")
-            .attr("id", function(d) { return "clip-" + d.data.id; })
-            .append("use")
-            .attr("xlink:href", function(d) { return "#" + d.data.id; });
+        var windowFirst = []
+        windowFirst.push(0);
+        windowFirst.push(0);
+        var windowFull = []
+        windowFull.push(0);
+        windowFull.push(0);
+        var data = []
 
-        cell_rel.append("text")
-            .attr("clip-path", function(d) { return "url(#clip-" + d.data.id + ")"; })
-            .selectAll("tspan")
-            .data(function(d) { return (d.data.name+" "+format(d.value) + "%").split(" "); }) // .split(/(?=[A-Z][^A-Z])/g); })
-            .enter().append("tspan")
-            .attr("x", 10)
-            .attr("y", function(d, i) { return 10 + i * 40; })
-            .text(function(d) { return d; })
-            .attr("alignment-baseline", "hanging")
-            .attr("font-size", "40px")
-            .style('fill', 'white');
+        country_data = csv_data.filter(d => d.location == country)
 
-        cell_rel.append("title")
-            .text(function(d) { return d.data.id + "\n" + format(d.value) + "%"; });
+        country_data.forEach(function(d) {
+            windowFirst.shift();
+            windowFirst.push(d.people_vaccinated);
+            windowFull.shift();
+            windowFull.push(d.people_fully_vaccinated);
+            let first = windowFirst[1] - windowFirst[0]
+            let fully = windowFull[1] - windowFull[0]
+            data.push({"date": dateParser(d.date), "first": first, "fully": fully, "day_total": first + fully });
+        });
 
-        treemap_relative_SVG.append("text").attr("class","label")
-            .text("Relative Number of Total Covid-19 Vaccinations Worldwide (200% max)") // based on provided data
-            .attr("transform", `translate(${[width/2 + margin.left, margin.top -50]})`)
+        x.domain(data.map(function(d) { return d.date; }));
+        y.domain([0, d3.max(data.map(d => d.day_total))*1.02 ]).nice();
+
+        svgBarChart.append("g")
+            .attr("class", "grid")
+            .call(make_y_gridlines()
+                .tickSize(-width)
+                .tickFormat("")
+            );
+
+        var category_keys = ["fully", "first"]
+        var category_names = ["second vaccination received", "first vaccination received"]
+        var progress = [d3.max(country_data.map(d => Number(d.people_fully_vaccinated_per_hundred))), d3.max(country_data.map(d => Number(d.people_vaccinated_per_hundred)))]
+        var color = [d3.interpolateMagma(0.60), d3.interpolateMagma(0.85)]//[d3.schemeSet3[6], d3.schemeSet3[4]]
+        var group = svgBarChart.selectAll("g.layer")
+            .data(d3.stack().keys(category_keys)(data), d => d.date); // this is where the magic happens
+
+        group.exit().remove()
+
+        group.enter().append("g")
+            .classed("layer", true)
+            .attr("fill", (d,i) => color[i]);
+
+        var bars = svgBarChart.selectAll("g.layer").selectAll("rect")
+            .data(d => d, e => e.data.date);
+
+        bars.exit().remove();
+
+        bars.enter().append("rect")
+            .merge(bars)
+            .attr("x", d => x(d.data.date) +3 )
+            .attr("y", d => y(d[1]))
+            .attr("height", d => y(d[0]) - y(d[1]))
+            .attr("width", x.bandwidth()-6)
+            .append("title")
+            .text(d => numberWithCommas(d[1]-d[0]));
+
+        svgBarChart.append("text").attr("class","label")
+            .text("Daily Number of Covid-19 Vaccinations in " + country) // based on provided data
+            .attr("transform", `translate(${[width/2, -50]})`)
             .attr("font-size", "80px")
             .attr("text-anchor", "middle")
             .attr("alignment-baseline", "ideographic");
 
-    });
+        svgBarChart.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + barChartHeight + ")")
+            .call(xAxis.tickValues(x.domain().filter(function(d,i){ return !((i-1)%7)})))
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.2em")
+            .attr("dy", ".6em")
+            .attr("transform", "rotate(-50)");
+
+        svgBarChart.append("g")
+            .attr("class", "y axis")
+            .attr("transform", "translate(" + 0 + ", " + 0 + ")")
+            .call(yAxis)
+            .selectAll("text")
+            .attr("transform", "translate(" + -10 + ", " + 0 + ")")
+
+        var legendItemHeight = 70, legendItemSpacing = 10, legendItemWidth = 100;
+        const legend = svgBarChart
+            .append("g").attr("class", "legend")
+            .attr("transform", `translate(${[25, 20]})`);
+
+        legend.selectAll("g.item")
+            .data(category_names.reverse())
+            .join("g").attr("class", "item")
+            .each(function(d, i) {
+                d3.select(this)
+                    .append("rect")
+                    .attr("y", i * (legendItemHeight + legendItemSpacing))
+                    .attr("height", legendItemHeight)
+                    .attr("width", legendItemWidth)
+                    .style("fill", color[category_names.length-1-i]);
+
+                d3.select(this)
+                    .append("text")
+                    .attr("y", i * (legendItemHeight + legendItemSpacing) + legendItemHeight/2)
+                    .attr("x", legendItemWidth + 20)
+                    .attr("font-size", "60px")
+                    .attr("alignment-baseline", "middle")
+                    .text(d + " (" + progress[progress.length-1-i] + "%)");
+        });
+    }
+
 
 </script>
 
