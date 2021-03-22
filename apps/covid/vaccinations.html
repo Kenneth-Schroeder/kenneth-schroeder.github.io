@@ -66,8 +66,8 @@
     let barChartDiv = d3.select("body").append("div")
 
     var svgBarChart = barChartDiv.append("svg")
-        .attr("width", '100%')//width + margin.left + margin.right)
-        .attr("height", '100%') //height + margin.top + margin.bottom)
+        .attr("width", '100%')
+        .attr("height", '100%')
         .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${barChartHeight + margin.top + margin.bottom}`)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -94,13 +94,6 @@
 
     d3.csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/vaccinations.csv").then(function(csv_data) {
 
-
-
-
-
-
-
-
         var selectedCountry = "Vaccinations.Germany";
         var selectedCountryName = "Germany";
 
@@ -124,7 +117,7 @@
         const formatDate = d3.timeFormat("%Y-%m-%d")
         const dateString = formatDate(twoDaysAgo)
 
-        global_data = csv_data.filter(d => d.date == dateString && Number(d.total_vaccinations) > 100000 && Number(d.total_vaccinations_per_hundred) > 1 && d.location != "World" && d.location != "European Union")
+        global_data = csv_data.filter(d => d.date == dateString && Number(d.total_vaccinations) > 100000 && Number(d.total_vaccinations_per_hundred) > 1 && !d.iso_code.startsWith("OWID"))
 
         var countries = []
         global_data.forEach(function(d) {
